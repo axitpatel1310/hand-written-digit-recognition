@@ -7,34 +7,27 @@ from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dense,
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import matplotlib.pyplot as plt
 
-# Custom preprocessing function for ImageDataGenerator
 def custom_preprocess(img):
-    # Ensure image is grayscale
     if len(img.shape) == 3 and img.shape[-1] == 3:
         img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    # Invert colors (white digits on black background)
     img = cv2.bitwise_not(img.astype(np.uint8))
-    # Normalize to [0, 1]
     img = img / 255.0
-    # Add channel dimension
     img = img[..., np.newaxis]
     return img
 
-# Function to preprocess a single image for prediction
 def preprocess_image(image_path):
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     if img is None:
         raise ValueError(f"Failed to load image: {image_path}")
     img = cv2.resize(img, (28, 28))
-    img = cv2.bitwise_not(img)  # Invert: white digits on black background
-    img = img / 255.0  # Normalize to [0, 1]
-    img = img[..., np.newaxis]  # Add channel dimension
+    img = cv2.bitwise_not(img) 
+    img = img / 255.0  
+    img = img[..., np.newaxis]  
     return img
 
-# Build CNN model
 def build_model():
     model = Sequential([
-        Input(shape=(28, 28, 1)),  # Explicit input layer
+        Input(shape=(28, 28, 1)),  
         Conv2D(32, (3, 3), activation='relu'),
         MaxPooling2D((2, 2)),
         Conv2D(64, (3, 3), activation='relu'),
@@ -42,19 +35,16 @@ def build_model():
         Flatten(),
         Dense(128, activation='relu'),
         Dropout(0.5),
-        Dense(10, activation='softmax')  # 10 classes (0-9)
+        Dense(10, activation='softmax')
     ])
     model.compile(optimizer='adam',
                   loss='sparse_categorical_crossentropy',
                   metrics=['accuracy'])
     return model
 
-# Main function
 def main():
-    # Dataset directory
     data_dir = "digits"
     
-    # Verify dataset structure
     print("Verifying dataset structure...")
     total_images = 0
     for digit in range(10):
@@ -68,11 +58,10 @@ def main():
         total_images += len(images)
     print(f"Total images found: {total_images}")
 
-    # Set up data generators
     print("Setting up data generators...")
     datagen = ImageDataGenerator(
-        validation_split=0.2,  # 20% for validation
-        preprocessing_function=custom_preprocess  # Custom preprocessing
+        validation_split=0.2,  
+        preprocessing_function=custom_preprocess  
     )
 
     train_generator = datagen.flow_from_directory(
@@ -95,30 +84,25 @@ def main():
         shuffle=True
     )
 
-    # Build model
     print("Building model...")
     model = build_model()
     model.summary()
 
-    # Train model
     print("Training model...")
     history = model.fit(
         train_generator,
-        epochs=5,  # Increase to 10-15 if accuracy is low
+        epochs=5,  
         validation_data=val_generator,
         verbose=1
     )
 
-    # Evaluate model
     print("Evaluating model...")
     val_loss, val_accuracy = model.evaluate(val_generator, verbose=0)
     print(f"Validation Accuracy: {val_accuracy:.4f}")
 
-    # Save model
     model.save('digit_recognizer.h5')
     print("Model saved as 'digit_recognizer.h5'")
 
-    # Plot training history
     plt.plot(history.history['accuracy'], label='Training Accuracy')
     plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
     plt.xlabel('Epoch')
@@ -128,17 +112,10 @@ def main():
     plt.close()
     print("Training history plot saved as 'training_history.png'")
 
-    # Function to predict a single digit
     def predict_digit(image_path):
         img = preprocess_image(image_path)
         img = img.reshape(1, 28, 28, 1)
         prediction = model.predict(img)
         return np.argmax(prediction)
-
-    # Example: Predict a single digit (uncomment and replace with your image path)
-    # test_image_path = "test_digit.png"
-    # predicted_digit = predict_digit(test_image_path)
-    # print(f"Predicted Digit for {test_image_path}: {predicted_digit}")
-
 if __name__ == "__main__":
     main()
